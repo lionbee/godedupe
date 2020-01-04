@@ -35,10 +35,15 @@ func (fs mockFS) Walk(root string, walkFn fileio.WalkFn) error {
 
 type mockFileInfo struct {
 	isdir bool
+	size  int64
 }
 
 func (mock mockFileInfo) IsDir() bool {
 	return mock.isdir
+}
+
+func (mock mockFileInfo) Size() int64 {
+	return mock.size
 }
 
 func TestHashFilesInPath(t *testing.T) {
@@ -52,7 +57,7 @@ func TestHashFilesInPath(t *testing.T) {
 		mockWalk := func(root string, walkFn fileio.WalkFn) error {
 			for i := 0; i < numberOfFiles; i++ {
 				path := fmt.Sprintf("%s%d", "test", i)
-				walkFn(path, mockFileInfo{isdir: false}, nil)
+				walkFn(path, mockFileInfo{isdir: false, size: 10}, nil)
 			}
 			return nil
 		}
@@ -115,7 +120,7 @@ func TestFindDuplicates(t *testing.T) {
 
 	go func() {
 		for i := 0; i < numberOfDupes; i++ {
-			hashChannel <- Filehash{mockHash, fmt.Sprintf("%s%d", "test", i)}
+			hashChannel <- Filehash{mockHash, fmt.Sprintf("%s%d", "test", i), 10}
 		}
 		close(hashChannel)
 	}()

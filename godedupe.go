@@ -17,6 +17,7 @@ var fs fileio.FileIO
 type Filehash struct {
 	hash string
 	path string
+	size int64
 }
 
 // HashFilesInPath HashFilesInPath recursively walks the directory tree
@@ -34,7 +35,7 @@ func HashFilesInPath(rootDir string) <-chan Filehash {
 			if err != nil {
 				log.Fatal(err)
 			} else {
-				hashChannel <- Filehash{hash, path}
+				hashChannel <- Filehash{hash, path, info.Size()}
 			}
 			return nil
 		})
@@ -43,13 +44,17 @@ func HashFilesInPath(rootDir string) <-chan Filehash {
 	return hashChannel
 }
 
+func filesAreEqual(f1 *Filehash, f2 *Filehash) bool {
+	return f1.size == f2.size && fs.FilesBytesAreEqual(f1.path, f2.path)
+}
+
 func emitDuplicates(hashChannel <-chan Filehash, dupesChannel chan<- duplicates.Duplicate) {
-	hashMap := make(map[string]string)
+	hashMap := make(map[string]Filehash)
 	for hf := range hashChannel {
-		if val, ok := hashMap[hf.hash]; ok && fs.FilesBytesAreEqual(val, hf.path) {
-			dupesChannel <- duplicates.Duplicate{Value1: val, Value2: hf.path}
+		if val, ok := hashMap[hf.hash]; ok && filesAreEqual(&val, &hf) {
+			dupesChannel <- duplicates.Duplicate{Value1: val.path, Value2: hf.path}
 		}
-		hashMap[hf.hash] = hf.path
+		hashMap[hf.hash] = hf
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 // FileInfo Information to indicate if the file is a directory
 type FileInfo interface {
 	IsDir() bool
+	Size() int64
 }
 
 // WalkFn function that is called for each element found
