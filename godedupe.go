@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/lionbee/godedupe/duplicates"
@@ -20,52 +19,55 @@ type Filehash struct {
 	size int64
 }
 
-// HashFilesInPath HashFilesInPath recursively walks the directory tree
+// FindFilesInPath FindFilesInPath recursively walks the directory tree
 // creating a MD5 hash for each for.
-func HashFilesInPath(rootDir string) <-chan Filehash {
-	hashChannel := make(chan Filehash)
+func FindFilesInPath(rootDir string) <-chan Filehash {
+	fileChannel := make(chan Filehash)
 
 	go func() {
-		defer close(hashChannel)
+		defer close(fileChannel)
 		fs.Walk(rootDir, func(path string, info fileio.FileInfo, err error) error {
 			if info.IsDir() {
 				return nil
 			}
-			hash, err := fs.MD5HashFile(path)
-			if err != nil {
-				log.Fatal(err)
-			} else {
-				hashChannel <- Filehash{hash, path, info.Size()}
-			}
+			fileChannel <- Filehash{"", path, info.Size()}
 			return nil
 		})
 	}()
 
-	return hashChannel
+	return fileChannel
 }
 
-func filesAreEqual(f1 *Filehash, f2 *Filehash) bool {
-	return f1.size == f2.size && fs.FilesBytesAreEqual(f1.path, f2.path)
-}
+const fileHashSize = 4096
 
-func emitDuplicates(hashChannel <-chan Filehash, dupesChannel chan<- duplicates.Duplicate) {
-	hashMap := make(map[string]Filehash)
-	for hf := range hashChannel {
-		if val, ok := hashMap[hf.hash]; ok && filesAreEqual(&val, &hf) {
-			dupesChannel <- duplicates.Duplicate{Value1: val.path, Value2: hf.path}
+func emitDuplicates(fileChannel <-chan Filehash, dupesChannel chan<- duplicates.Duplicate) {
+	hashMap := make(map[int64][]Filehash)
+	for hf := range fileChannel {
+		if fileslice, ok := hashMap[hf.size]; ok {
+			hf.hash, _ = fs.MD5HashFile(hf.path, fileHashSize)
+			for i := range fileslice {
+				f := &fileslice[i]
+				if f.hash == "" {
+					f.hash, _ = fs.MD5HashFile(f.path, fileHashSize)
+				}
+				if hf.hash == f.hash && fs.FilesBytesAreEqual(hf.path, f.path) {
+					dupesChannel <- duplicates.Duplicate{Value1: f.path, Value2: hf.path}
+					break
+				}
+			}
 		}
-		hashMap[hf.hash] = hf
+		hashMap[hf.size] = append(hashMap[hf.size], hf)
 	}
 }
 
 // FindDuplicates returns a new channel containing all the duplicates
-// found in the hashChannel
-func FindDuplicates(hashChannel <-chan Filehash) <-chan duplicates.Duplicate {
+// found in the fileChannel
+func FindDuplicates(fileChannel <-chan Filehash) <-chan duplicates.Duplicate {
 	dupesChannel := make(chan duplicates.Duplicate)
 
 	go func() {
 		defer close(dupesChannel)
-		emitDuplicates(hashChannel, dupesChannel)
+		emitDuplicates(fileChannel, dupesChannel)
 	}()
 
 	return dupesChannel
@@ -87,7 +89,7 @@ func GetDuplicateFileDeleter(writer io.Writer) duplicates.DuplicateHandler {
 func ProcessDuplicateFiles(dir string, dupeHandler duplicates.DuplicateHandler) {
 	duplicates.ApplyFuncToChan(
 		FindDuplicates(
-			HashFilesInPath(dir)), dupeHandler)
+			FindFilesInPath(dir)), dupeHandler)
 }
 
 // SetFS sets an alternative FS handler

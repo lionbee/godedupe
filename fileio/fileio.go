@@ -22,7 +22,7 @@ type WalkFn = func(path string, info FileInfo, err error) error
 type FileIO interface {
 	Delete(string) error
 	FilesBytesAreEqual(string, string) bool
-	MD5HashFile(string) (string, error)
+	MD5HashFile(string, int64) (string, error)
 	Walk(string, WalkFn) error
 }
 
@@ -51,14 +51,14 @@ func (FS) FilesBytesAreEqual(path1 string, path2 string) bool {
 }
 
 // MD5HashFile creates an MD5 hash for a file
-func (FS) MD5HashFile(path string) (string, error) {
+func (FS) MD5HashFile(path string, hashSize int64) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
-	return bytecompare.MD5Hash(file)
+	return bytecompare.MD5Hash(file, hashSize)
 }
 
 // Walk walks the entire file path from to root directory calling

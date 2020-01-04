@@ -17,7 +17,7 @@ func (r readerror) Read(p []byte) (n int, err error) {
 func TestMD5Hash(t *testing.T) {
 	t.Run("MD5 is correct", func(t *testing.T) {
 		expect := "0480aa34aa3db358b37cde2ab6b65326"
-		received, _ := MD5Hash(bytes.NewReader([]byte("Thisisatest")))
+		received, _ := MD5Hash(bytes.NewReader([]byte("Thisisatest")), 2000)
 
 		if expect != received {
 			t.Errorf("expected %s, received %s", expect, received)
@@ -26,7 +26,7 @@ func TestMD5Hash(t *testing.T) {
 
 	t.Run("Errors are returned", func(t *testing.T) {
 		expected := "FAIL"
-		_, err := MD5Hash(readerror{expected})
+		_, err := MD5Hash(readerror{expected}, 2000)
 		received := err.Error()
 		if received != expected {
 			t.Errorf("Expected %s, received %s", expected, received)

@@ -7,12 +7,10 @@ import (
 	"io"
 )
 
-const md5HashSize = 4096
-
 // MD5Hash Create a MD5 hash for a reader
-func MD5Hash(src io.Reader) (string, error) {
+func MD5Hash(src io.Reader, hashSize int64) (string, error) {
 	hash := md5.New()
-	if _, err := io.CopyN(hash, src, md5HashSize); err != nil && err != io.EOF {
+	if _, err := io.CopyN(hash, src, hashSize); err != nil && err != io.EOF {
 		return "", err
 	}
 

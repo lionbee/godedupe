@@ -13,7 +13,7 @@ import (
 type mockFS struct {
 	delete             func(string) error
 	filesBytesAreEqual func(string, string) bool
-	md5HashFile        func(string) (string, error)
+	md5HashFile        func(string, int64) (string, error)
 	walk               func(string, fileio.WalkFn) error
 }
 
@@ -25,8 +25,8 @@ func (fs mockFS) FilesBytesAreEqual(path1 string, path2 string) bool {
 	return fs.filesBytesAreEqual(path1, path2)
 }
 
-func (fs mockFS) MD5HashFile(path string) (string, error) {
-	return fs.md5HashFile(path)
+func (fs mockFS) MD5HashFile(path string, hashSize int64) (string, error) {
+	return fs.md5HashFile(path, hashSize)
 }
 
 func (fs mockFS) Walk(root string, walkFn fileio.WalkFn) error {
@@ -49,7 +49,7 @@ func (mock mockFileInfo) Size() int64 {
 func TestHashFilesInPath(t *testing.T) {
 	numberOfFiles := 10
 	mockHashValue := "THIS IS A MOCK"
-	mockhash := func(path string) (string, error) {
+	mockhash := func(path string, hashSize int64) (string, error) {
 		return mockHashValue, nil
 	}
 
@@ -57,7 +57,7 @@ func TestHashFilesInPath(t *testing.T) {
 		mockWalk := func(root string, walkFn fileio.WalkFn) error {
 			for i := 0; i < numberOfFiles; i++ {
 				path := fmt.Sprintf("%s%d", "test", i)
-				walkFn(path, mockFileInfo{isdir: false, size: 10}, nil)
+				walkFn(path, mockFileInfo{isdir: false, size: 100}, nil)
 			}
 			return nil
 		}
@@ -67,12 +67,12 @@ func TestHashFilesInPath(t *testing.T) {
 			walk:        mockWalk,
 		})
 
-		hashed := HashFilesInPath("Test")
+		hashed := FindFilesInPath("Test")
 		hashCount := 0
 		for h := range hashed {
 			hashCount++
-			if h.hash != mockHashValue {
-				t.Error("Unexpected hash")
+			if h.hash != "" {
+				t.Errorf("Unexpected hash: %s", h.hash)
 			}
 		}
 		if hashCount != numberOfFiles {
@@ -94,7 +94,7 @@ func TestHashFilesInPath(t *testing.T) {
 			walk:        mockWalk,
 		})
 
-		hashed := HashFilesInPath("Test")
+		hashed := FindFilesInPath("Test")
 		hashCount := 0
 		for h := range hashed {
 			if h.hash != "" {
@@ -109,18 +109,22 @@ func TestHashFilesInPath(t *testing.T) {
 
 func TestFindDuplicates(t *testing.T) {
 	numberOfDupes := 5
-	mockHash := "Equal"
 	mockFileBytesAreEqual := func(string, string) bool { return true }
+	mockHashValue := "THIS IS A MOCK"
+	mockhash := func(path string, hashSize int64) (string, error) {
+		return mockHashValue, nil
+	}
 
 	SetFS(mockFS{
 		filesBytesAreEqual: mockFileBytesAreEqual,
+		md5HashFile:        mockhash,
 	})
 
 	hashChannel := make(chan Filehash)
 
 	go func() {
 		for i := 0; i < numberOfDupes; i++ {
-			hashChannel <- Filehash{mockHash, fmt.Sprintf("%s%d", "test", i), 10}
+			hashChannel <- Filehash{"", fmt.Sprintf("%s%d", "test", i), 10}
 		}
 		close(hashChannel)
 	}()
@@ -167,7 +171,7 @@ func TestDeleteDuplicate(t *testing.T) {
 func TestProcessDuplicateFiles(t *testing.T) {
 	numberOfFiles := 10
 	mockHashValue := "THIS IS A MOCK"
-	mockhash := func(path string) (string, error) {
+	mockhash := func(path string, hashSize int64) (string, error) {
 		return mockHashValue, nil
 	}
 	mockWalk := func(root string, walkFn fileio.WalkFn) error {

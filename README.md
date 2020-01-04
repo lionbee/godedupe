@@ -33,17 +33,4 @@ Duplicate files are deleted and the name of the deleted files are printed to std
 
 ## Logic
 
-`godedupe` works by walking the supplied directory. Each file that is encountered is MD5 hashed. The hash is stored in a map of hash to path. If there is a hash colission there is potentionally a duplicate file. To confirm the file is in fact a duplicate the files are compared byte by byte before proceding.
-
-If a duplicate is found, it becomes the new original.
-
-### Example
-
-If file1.jpg, file2.jpg, file3.jpg are all the same and you choose the output to be CSV then the output is
-
-> file1.jpg, file2.jpg\
-> file2.jpg, file3.jpg
-
-Indicating that file2.jpg is a duplicate of file1.jpg and file3.jpg is a duplicate of file2.jpg.
-
-file2.jpg and file3.jpg are the files that would be deleted.
+`godedupe` works by walking the supplied directory. Files that have the same number of bytes are MD5 hashed. If there is a hash colission there is potentionally a duplicate file. To confirm the file is in fact a duplicate the files are compared byte by byte before proceding.
