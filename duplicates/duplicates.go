@@ -22,14 +22,14 @@ func GetWriter(writer io.Writer) DuplicateHandler {
 	}
 }
 
-// GetCSVWriter returns a func that  prints the duplicate value and the value it is a duplicate of as a csv
+// GetCSVWriter returns a func that prints the duplicate value and the value it is a duplicate of as a csv
 func GetCSVWriter(writer io.Writer) DuplicateHandler {
 	return func(d Duplicate) {
 		fmt.Fprintf(writer, "\"%s\",\"%s\"\n", d.Value1, d.Value2)
 	}
 }
 
-// ApplyFuncToChan iterates over a channel of Duplicate and appies the same function to each value
+// ApplyFuncToChan iterates over a channel of Duplicate and applies the same function to each value
 func ApplyFuncToChan(duplicates <-chan Duplicate, handler DuplicateHandler) {
 	for d := range duplicates {
 		handler(d)

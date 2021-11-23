@@ -1,11 +1,10 @@
 package fileio
 
 import (
+	"deduplicate/bytecompare"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/lionbee/godedupe/bytecompare"
 )
 
 // FileInfo Information to indicate if the file is a directory

@@ -2,12 +2,10 @@ package main
 
 import (
 	"bytes"
+	"deduplicate/duplicates"
+	"deduplicate/fileio"
 	"fmt"
 	"testing"
-
-	"github.com/lionbee/godedupe/duplicates"
-
-	"github.com/lionbee/godedupe/fileio"
 )
 
 type mockFS struct {
@@ -47,7 +45,7 @@ func (mock mockFileInfo) Size() int64 {
 }
 
 func TestHashFilesInPath(t *testing.T) {
-	numberOfFiles := 10
+	numberOfFiles := 100000
 	mockHashValue := "THIS IS A MOCK"
 	mockhash := func(path string, hashSize int64) (string, error) {
 		return mockHashValue, nil

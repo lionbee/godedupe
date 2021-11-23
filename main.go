@@ -1,13 +1,12 @@
 package main
 
 import (
+	"deduplicate/duplicates"
+	"deduplicate/fileio"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/lionbee/godedupe/duplicates"
-	"github.com/lionbee/godedupe/fileio"
 )
 
 var fs fileio.FileIO
@@ -20,7 +19,7 @@ type Filehash struct {
 }
 
 // FindFilesInPath FindFilesInPath recursively walks the directory tree
-// creating a MD5 hash for each for.
+// creating a MD5 hash for each file
 func FindFilesInPath(rootDir string) <-chan Filehash {
 	fileChannel := make(chan Filehash)
 

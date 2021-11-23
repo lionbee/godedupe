@@ -1,0 +1,12 @@
+version: "3"
+vars:
+  GO_BINARY: deduplicate
+
+tasks:
+  build:
+    cmds:
+      - go build -o {{.GO_BINARY}}
+
+  test:
+    cmds:
+      - go test ./...
